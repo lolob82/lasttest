@@ -101,23 +101,18 @@ const ShoppingCart = ({ items, onClose, updateQuantity, removeFromCart }) => {
       }
 
       // Call the API Gateway endpoint
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/prod'
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://kw929r1uk6.execute-api.us-east-1.amazonaws.com/prod'
       
       console.log('API URL being used:', apiUrl)
       console.log('Order data being sent:', orderData)
+      console.log('Environment check:', process.env.REACT_APP_API_URL)
       
-      // For testing - simulate successful order
-      if (apiUrl.includes('your-api-gateway-url')) {
-        console.warn('Using placeholder API URL - simulating successful order')
-        alert(`Commande simulée avec succès ! Numéro de commande : ${orderNumber}\nVeuillez configurer votre vraie URL d'API dans le fichier .env`)
-        onClose()
-        items.forEach(item => removeFromCart(item.id))
-        return
-      }
-
-      console.log('Making API request to:', `${apiUrl}/orders`)
+      // Force use real API URL for testing
+      const realApiUrl = 'https://kw929r1uk6.execute-api.us-east-1.amazonaws.com/prod'
       
-      const response = await fetch(`${apiUrl}/orders`, {
+      console.log('Making API request to:', `${realApiUrl}/orders`)
+      
+      const response = await fetch(`${realApiUrl}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
