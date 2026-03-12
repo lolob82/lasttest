@@ -383,7 +383,7 @@ Resources:
       FunctionName: !Ref OrderProcessorFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub '${ApiGateway}/*/POST/orders'
+      SourceArn: !Sub 'arn:aws:execute-api:us-east-1:${AWS::AccountId}:${ApiGateway}/*/POST/orders'
 
   # Lambda Permission for API Gateway GET
   LambdaApiGatewayPermissionGet:
@@ -392,7 +392,7 @@ Resources:
       FunctionName: !Ref OrderProcessorFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub '${ApiGateway}/*/GET/orders'
+      SourceArn: !Sub 'arn:aws:execute-api:us-east-1:${AWS::AccountId}:${ApiGateway}/*/GET/orders'
 
 Outputs:
   ApiGatewayUrl:
