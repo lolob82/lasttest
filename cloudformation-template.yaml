@@ -414,6 +414,7 @@ Resources:
     Properties:
       RestApiId: !Ref ApiGateway
       StageName: prod
+      Description: !Sub 'Deployment at ${AWS::StackName}-${AWS::Region}'
 
   # Lambda Permission for API Gateway
   LambdaApiGatewayPermission:
@@ -422,7 +423,7 @@ Resources:
       FunctionName: !Ref OrderProcessorFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub 'arn:aws:execute-api:us-east-1:${AWS::AccountId}:${ApiGateway}/*/POST/orders'
+      SourceArn: !Sub '${ApiGateway}/*/*'
 
   # Lambda Permission for API Gateway GET
   LambdaApiGatewayPermissionGet:
@@ -431,7 +432,7 @@ Resources:
       FunctionName: !Ref OrderProcessorFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub 'arn:aws:execute-api:us-east-1:${AWS::AccountId}:${ApiGateway}/*/GET/orders'
+      SourceArn: !Sub '${ApiGateway}/*/GET/orders'
 
 Outputs:
   ApiGatewayUrl:
