@@ -64,7 +64,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: NatureMamaOrderProcessor
-      Runtime: nodejs20.x
+      Runtime: nodejs18.x
       Handler: index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 30
@@ -216,33 +216,46 @@ Resources:
                     shipping: orderData.shipping,
                     total: orderData.total,
                     orderDate: orderData.orderDate,
-                    status: 'confirmed'
+                    status: 'confirmed',
+                    createdAt: new Date().toISOString()
                   }
                 };
 
                 await dynamodb.put(params).promise();
 
-                // Send confirmation email
-                const emailHTML = generateEmailHTML(orderData);
+                // Try to send email, but don't fail if it doesn't work
+                let emailSent = false;
+                let emailError = null;
                 
-                const emailParams = {
-                  Source: process.env.FROM_EMAIL,
-                  Destination: {
-                    ToAddresses: [orderData.customerInfo.email]
-                  },
-                  Message: {
-                    Subject: {
-                      Data: `Order Confirmation - ${orderData.orderNumber} - NatureMama Heritage`
+                try {
+                  console.log('Attempting to send email...');
+                  const emailHTML = generateEmailHTML(orderData);
+                  
+                  const emailParams = {
+                    Source: process.env.FROM_EMAIL,
+                    Destination: {
+                      ToAddresses: [orderData.customerInfo.email]
                     },
-                    Body: {
-                      Html: {
-                        Data: emailHTML
+                    Message: {
+                      Subject: {
+                        Data: `Confirmation de commande - ${orderData.orderNumber} - NatureMama Heritage`
+                      },
+                      Body: {
+                        Html: {
+                          Data: emailHTML
+                        }
                       }
                     }
-                  }
-                };
+                  };
 
-                await ses.sendEmail(emailParams).promise();
+                  await ses.sendEmail(emailParams).promise();
+                  console.log('Email sent successfully');
+                  emailSent = true;
+                } catch (error) {
+                  console.error('Email sending failed:', error);
+                  emailError = error.message;
+                  // Continue without failing the order
+                }
 
                 return {
                   statusCode: 200,
@@ -250,7 +263,10 @@ Resources:
                   body: JSON.stringify({
                     success: true,
                     orderNumber: orderData.orderNumber,
-                    message: 'Order placed successfully'
+                    message: 'Commande enregistrée avec succès',
+                    emailSent: emailSent,
+                    emailError: emailError,
+                    note: emailSent ? 'Email de confirmation envoyé' : 'Commande sauvegardée mais email non envoyé'
                   })
                 };
 
@@ -267,7 +283,8 @@ Resources:
                   headers: corsHeaders,
                   body: JSON.stringify({
                     success: true,
-                    orders: result.Items
+                    count: result.Items.length,
+                    orders: result.Items.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
                   })
                 };
 
@@ -275,18 +292,24 @@ Resources:
                 return {
                   statusCode: 404,
                   headers: corsHeaders,
-                  body: JSON.stringify({ error: 'Not found' })
+                  body: JSON.stringify({ 
+                    error: 'Endpoint not found',
+                    path: event.path,
+                    method: event.httpMethod
+                  })
                 };
               }
 
             } catch (error) {
-              console.error('Error:', error);
+              console.error('Lambda error:', error);
               return {
                 statusCode: 500,
                 headers: corsHeaders,
                 body: JSON.stringify({
                   success: false,
-                  error: error.message
+                  error: error.message,
+                  details: error.stack,
+                  timestamp: new Date().toISOString()
                 })
               };
             }
