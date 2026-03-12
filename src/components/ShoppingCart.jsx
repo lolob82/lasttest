@@ -104,7 +104,7 @@ const ShoppingCart = ({ items, onClose, updateQuantity, removeFromCart }) => {
       const apiUrl = process.env.REACT_APP_API_URL || 'https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/prod'
       
       console.log('API URL being used:', apiUrl)
-      console.log('Environment variables:', process.env)
+      console.log('Order data being sent:', orderData)
       
       // For testing - simulate successful order
       if (apiUrl.includes('your-api-gateway-url')) {
@@ -114,6 +114,8 @@ const ShoppingCart = ({ items, onClose, updateQuantity, removeFromCart }) => {
         items.forEach(item => removeFromCart(item.id))
         return
       }
+
+      console.log('Making API request to:', `${apiUrl}/orders`)
       
       const response = await fetch(`${apiUrl}/orders`, {
         method: 'POST',
@@ -123,17 +125,41 @@ const ShoppingCart = ({ items, onClose, updateQuantity, removeFromCart }) => {
         body: JSON.stringify(orderData)
       })
 
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+      
+      const responseText = await response.text()
+      console.log('Raw response:', responseText)
+      
+      let responseData
+      try {
+        responseData = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError)
+        throw new Error(`Invalid JSON response: ${responseText}`)
+      }
+      
+      console.log('Parsed response data:', responseData)
+
       if (response.ok) {
-        alert(`Order placed successfully! Order number: ${orderNumber}\nYou will receive a confirmation email shortly.`)
+        alert(`Commande passée avec succès ! Numéro de commande : ${orderNumber}\n${responseData.note || 'Vous recevrez un email de confirmation sous peu.'}`)
         onClose()
-        // Clear cart items (you might want to pass this function from parent)
         items.forEach(item => removeFromCart(item.id))
       } else {
-        throw new Error('Failed to place order')
+        throw new Error(`API Error: ${response.status} - ${JSON.stringify(responseData)}`)
       }
     } catch (error) {
-      console.error('Error placing order:', error)
-      alert('There was an error placing your order. Please try again.')
+      console.error('Erreur détaillée lors de la commande:', error)
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+      
+      // Check if it's a network error
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        alert(`Erreur de réseau: Impossible de contacter le serveur.\nVérifiez votre connexion internet et l'URL de l'API.\nURL utilisée: ${process.env.REACT_APP_API_URL}`)
+      } else {
+        alert(`Erreur lors de la commande: ${error.message}\nVérifiez la console (F12) pour plus de détails.`)
+      }
     } finally {
       setIsSubmitting(false)
     }
